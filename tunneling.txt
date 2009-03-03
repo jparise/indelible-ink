@@ -7,8 +7,8 @@ This paper discusses the implementation of virtual Ethernet tunnels using
 version 2.9, so some of the material may be fairly dated.  I haven't revisited
 the details since then.
 
-Description
-===========
+Overview
+========
 
 Without going too deep into the technical details, a virtual Ethernet tunnel
 uses packet encapsulation, Ethernet bridging, and `IPSec`_ encryption to
@@ -146,7 +146,7 @@ Keys can be generated using the following command::
     openssl rand 24 | hexdump -e '24/1 "%02x"' && echo ""
 
 This will generate a hexadecimal representation of a 24-bit key.  If a
-different key size is needed, replace the occurrences of `24` with the desired
+different key size is needed, replace the occurrences of *24* with the desired
 bit size.
 
 Configuring the Ethernet Interfaces
