@@ -4,7 +4,7 @@
 
 This paper discusses the implementation of virtual Ethernet tunnels using
 `OpenBSD`_.  The current release of OpenBSD at the time of writing (2001) was
-version 2.9, so some of the material may be fairly dated.  I haven't revisted
+version 2.9, so some of the material may be fairly dated.  I haven't revisited
 the details since then.
 
 Description
@@ -12,7 +12,7 @@ Description
 
 Without going too deep into the technical details, a virtual Ethernet tunnel
 uses packet encapsulation, Ethernet bridging, and `IPSec`_ encryption to
-tunnel a subnetwork from one host to another host over a public network
+tunnel a subnet from one host to another host over a public network
 (generally, the Internet).
 
 The best way to explain how this works is by describing each of the pieces
@@ -31,13 +31,12 @@ groups along with traditional physical interfaces, it opened up a number of
 new possibilities.  In our case, it allows us to group the generic ``gif``
 interfaces (which represent our Ethernet tunnel, as previously described) with
 a physical interface.  This allows the physical interfaces to share traffic
-with the tunnel interface as though they existing on the same subnetwork.  And
+with the tunnel interface as though they existing on the same subnet.  And
 because the tunnel interface is really a stream of encapsulated packets from
-some other host, we can effectively link two segments of the same subnetwork
-using two bridges (one on each host) and an encapsulated tunnel to span the
-hosts.
+some other host, we can effectively link two segments of the same subnet using
+two bridges (one on each host) and an encapsulated tunnel to span the hosts.
 
-Visually (forgive my ASCII art)::
+::
 
          (bridged interfaces)                  (bridged interfaces)
             |            |                        |            |
@@ -73,7 +72,7 @@ uncommented::
     net.inet.esp.enable=1           # 1=Enable the ESP IPSec protocol
     net.inet.ah.enable=1            # 1=Enable the AH IPSec protocol
 
-These parameters can also be enabled at runtime using the `sysctl`_ tool.
+These parameters can also be modified at runtime using the `sysctl`_ tool.
 
 ipsecadm and Security Associations
 ==================================
@@ -154,10 +153,10 @@ Configuring the Ethernet Interfaces
 ===================================
 
 Two Ethernet interfaces on each host are required for this sort of tunneling.
-Each interface must sit on a different subnetwork.  One of those subnetworks
-should obviously be the one whose addresses you want to tunnel.  In our
-example, that network is 129.21.60.0/24. The other network can be pretty much
-anything (a cable modem network, for example).
+Each interface must sit on a different subnet.  One of those subnets should
+obviously be the one whose addresses you want to tunnel.  In our example, that
+network is 129.21.60.0/24. The other network can be pretty much anything (a
+cable modem network, for example).
 
 The easiest way to configure the network interfaces is by using the
 ``/etc/hostname.interface`` file.  OpenBSD will execute the interface
@@ -174,7 +173,7 @@ case, the interface sits on a nine-bit subnet, so we set the netmask
 accordingly.  Test that this interface works correctly before proceeding.
 
 Now we'll configure the second network interface, the one that sits on the
-subnetwork that we want to tunnel (``/etc/hostname.dc0``, for me)::
+subnet that we want to tunnel (``/etc/hostname.dc0``, for me)::
 
     inet 129.21.60.107 255.255.255.0 NONE
 
@@ -182,8 +181,8 @@ A Note on Gateway Addresses
 ===========================
 
 It is important to note that each host's gateway address must be set to the
-"public" network's gateway (not the subnetwork that you are tunneling!).
-Things will not work correctly otherwise.
+"public" network's gateway (not the subnet that you are tunneling!).  Things
+will not work correctly otherwise.
 
 The system's gateway address can be statically configured using the
 ``/etc/mygate`` file.  It might contain a line like this::
@@ -353,7 +352,7 @@ Add the following lines to your kernel configuration file::
 Feel free to replace the number of devices (8, in this case) with a number of
 your own choosing.  It's up to you and your setup.
 
-Continue on building your custom kernel.  Note that config might complain
+Continue on building your custom kernel.  Note that ``config`` might complain
 about the redefinition of the above interfaces, but the warning is only
 informational.  Your new values will override the defaults.
 
