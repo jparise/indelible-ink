@@ -1,0 +1,379 @@
+============================
+ Virtual Ethernet Tunneling
+============================
+
+This paper discusses the implementation of virtual Ethernet tunnels using
+`OpenBSD`_.  The current release of OpenBSD at the time of writing (2001) was
+version 2.9, so some of the material may be fairly dated.  I haven't revisted
+the details since then.
+
+Description
+===========
+
+Without going too deep into the technical details, a virtual Ethernet tunnel
+uses packet encapsulation, Ethernet bridging, and `IPSec`_ encryption to
+tunnel a subnetwork from one host to another host over a public network
+(generally, the Internet).
+
+The best way to explain how this works is by describing each of the pieces
+involved.
+
+We'll start with packet encapsulation.  Ethernet frames can be encapsulation
+within an IP packet and transported to a remote host, who can then strip off
+the surrounding IP headers and retrieve the original, unmodified Ethernet
+frame.  This is the essence of tunneling packets from one network to another
+over an intermediate network.  OpenBSD supports this type of encapsulated
+tunnel using the ``gif`` interface.
+
+Bridging is definitely not a new networking technology, but once the OpenBSD
+code was expanded to allow the inclusion of virtual interfaces in bridge
+groups along with traditional physical interfaces, it opened up a number of
+new possibilities.  In our case, it allows us to group the generic ``gif``
+interfaces (which represent our Ethernet tunnel, as previously described) with
+a physical interface.  This allows the physical interfaces to share traffic
+with the tunnel interface as though they existing on the same subnetwork.  And
+because the tunnel interface is really a stream of encapsulated packets from
+some other host, we can effectively link two segments of the same subnetwork
+using two bridges (one on each host) and an encapsulated tunnel to span the
+hosts.
+
+Visually (forgive my ASCII art)::
+
+         (bridged interfaces)                  (bridged interfaces)
+            |            |                        |            |
+            v +--------+ v                        v +--------+ v
+         /----| Host 1 |-----[ public network ]-----| Host 2 |----\
+         |    +--------+ ^    <-(gif tunnel)->    ^ +--------+    |
+      private            |                        |            private
+      network           gif                      gif           network
+
+The final piece of the system is IPSec.  While not absolutely required to
+tunnel between our bridged interfaces, it adds a welcome layer of security and
+helps maintain the privacy of our "private" network.  The IPSec part of the
+equation is perhaps the most complex and difficult to set up, but it scarcely
+causes problems once it's running, and it's not really as hard to get going as
+it may sound.
+
+Required sysctl Settings
+========================
+
+Before your system can forward packets between interfaces or handle the IPSec
+protocols, the following sysctls need to be enabled (i.e. set to ``1``):
+
+- ``net.inet.ip.forwarding``
+- ``net.inet.esp.enable``
+- ``net.inet.ah.enable``
+- ``net.inet.etherip.allow``
+
+OpenBSD can enable these settings on boot based on the contents of
+``/etc/sysctl.conf``. Make sure you have at least the following lines
+uncommented::
+
+    net.inet.ip.forwarding=1        # 1=Permit forwarding (routing) of packets
+    net.inet.esp.enable=1           # 1=Enable the ESP IPSec protocol
+    net.inet.ah.enable=1            # 1=Enable the AH IPSec protocol
+
+These parameters can also be enabled at runtime using the `sysctl`_ tool.
+
+ipsecadm and Security Associations
+==================================
+
+OpenBSD includes a tool named `ipsecadm`_ that is used for managing the
+system's security associations (SA's) and flows.  The tool accepts a number of
+arguments, but we'll mainly be working with the SA creation syntax::
+
+    ipsecadm new esp -spi 2000 -dst 66.24.105.57 -src 129.21.111.216 -enc 3des \
+    -auth sha1 -key d09fffc3ebaee12362d65b38068dd381df89e4961ed282b3 -authkey \
+    5ee0fc2cc2197fe24417934cac6db483b53eace3
+
+This command will create a new security association using the `esp`_ IPSec
+protocol.  We've assigned this entry an SPI (unique index) of 2000.  We also
+set the source and destination addresses for this SA.  Note that these are
+specific to the SA and don't assume anything about the host, meaning that the
+source address isn't necessarily the local machine's address. 
+
+We continue by defining the desired encryption algorithm (``3des``), the
+authentication algorithm, and the two encryption keys.  We'll cover key
+generation in the `Generating Keys`_ section below.
+
+The following is an example of a second, complementary SA::
+
+    ipsecadm new esp -spi 2001 -dst 129.21.111.216 -src 66.24.105.57 -enc 3des \
+    -auth sha1 -key d09fffc3ebaee12362d65b38068dd381df89e4961ed282b3 -authkey \
+    5ee0fc2cc2197fe24417934cac6db483b53eace3
+
+This entry is nearly the same as the previous SA.  Note, however, that we've
+assigned it a different SPI (2001).  We've also swapped the source and
+destination addresses.
+
+We now have two SA's defined, one for each direction of packet flow.  These
+two SA's must be defined identically on both hosts -- don't change the
+ordering of the addresses or alter the encryption protocols or keys on one of
+the hosts!  Because the SPI is included with each encrypted packet - and each
+host uses the SPI to determine how the packet should be routed, encrypted, or
+decrypted - the ordering must remain consistent.  In other words, security
+associations are unique to the connection, not the hosts. 
+
+The last thing we need to do is define a flow.  A flow determines what
+security parameters a packet should have for either input or output.  Here's
+an example::
+
+    ipsecadm flow -dst 66.24.105.57 -out -transport etherip -require -addr \
+    129.21.111.216 255.255.255.255 66.24.105.57 255.255.255.255
+
+This command defines a flow for packets destined for 66.24.105.57.  We specify
+that we'll be transporting these packets using "Ethernet in IP" encapsulation,
+and the packets will be traveling from us at 129.21.111.216 to our destination
+at 66.24.105.57. 
+
+Unlike security associations, flows are unique to the individual host's
+configuration.  The command for the opposite host would be::
+
+    ipsecadm flow -dst 129.21.111.216 -out -transport etherip -require -addr \
+    66.24.105.57 255.255.255.255 129.21.111.216 255.255.255.255
+
+Note that all we've done here is change the flow's destination address and
+swap the source and destination address of the connection.
+
+Generating Keys
+===============
+
+The key's size depends on the encryption protocol.  DES and 3DES use 8 and 24
+bits, respectively.  The sizes for the other protocols (Rijndael, Blowfish,
+CAST) may vary.
+
+Keys can be generated using the following command::
+
+    openssl rand 24 | hexdump -e '24/1 "%02x"' && echo ""
+
+This will generate a hexadecimal representation of a 24-bit key.  If a
+different key size is needed, replace the occurrences of `24` with the desired
+bit size.
+
+Configuring the Ethernet Interfaces
+===================================
+
+Two Ethernet interfaces on each host are required for this sort of tunneling.
+Each interface must sit on a different subnetwork.  One of those subnetworks
+should obviously be the one whose addresses you want to tunnel.  In our
+example, that network is 129.21.60.0/24. The other network can be pretty much
+anything (a cable modem network, for example).
+
+The easiest way to configure the network interfaces is by using the
+``/etc/hostname.interface`` file.  OpenBSD will execute the interface
+configuration commands listed inside this file upon boot, which is generally
+desirable for this kind of setup. 
+
+We'll begin by configuring the "public" interface (``/etc/hostname.sis0``, in
+my case)::
+
+    inet 129.21.111.216 255.255.255.128 NONE
+
+Be sure to set up this interface correctly (including the netmask!).  In this
+case, the interface sits on a nine-bit subnet, so we set the netmask
+accordingly.  Test that this interface works correctly before proceeding.
+
+Now we'll configure the second network interface, the one that sits on the
+subnetwork that we want to tunnel (``/etc/hostname.dc0``, for me)::
+
+    inet 129.21.60.107 255.255.255.0 NONE
+
+A Note on Gateway Addresses
+===========================
+
+It is important to note that each host's gateway address must be set to the
+"public" network's gateway (not the subnetwork that you are tunneling!).
+Things will not work correctly otherwise.
+
+The system's gateway address can be statically configured using the
+``/etc/mygate`` file.  It might contain a line like this::
+
+    129.21.111.254
+
+If your host uses DHCP to configure its gateway address (in the case of a
+cable modem provider), this will all be handled for you and there is no need
+to configure your gateway address by hand. 
+
+The Generic Interface
+=====================
+
+The generic interface (``gif``) is used for the actual tunneling between the
+hosts.  This interface is purely virtual, meaning it is not necessarily bound
+to any physical interface on the system.  Instead, it is given a source and a
+destination address between which to tunnel its encapsulated by packets.
+
+More detailed information is available in the `manpage`__. 
+
+.. __: http://www.openbsd.org/cgi-bin/man.cgi?query=gif
+
+The ``gif`` interface can be configured at boot via the ``/etc/hostname.gif0``
+file.  Here is the ``/etc/hostname.gif0`` file that I use::
+
+    giftunnel 129.21.111.216 66.24.105.57
+    up
+
+The first line establishes the tunnel between the local (source) address and
+the remote (destination) address.  The second line activates the interface.
+
+Both of these command strings are passed directly to ``ifconfig``.
+
+The Bridge Interface
+====================
+
+OpenBSD includes excellent Ethernet bridging support.  Each bridge is
+represented by a ``bridge`` interface (e.g. ``/dev/bridge0``).  Bridge
+configuration is performed using the ``brconfig`` tool.
+
+Each bridge can have an arbitrary number of interfaces added to it.  These
+interfaces can either be physical network interfaces or virtual encapsulation
+interfaces (such as the ``gif`` interface).
+
+More detailed information is available in the `manpage
+<http://www.openbsd.org/cgi-bin/man.cgi?query=bridge>`_.
+
+Bridge configuration can also be performed upon boot.  This is accomplished
+through the ``/etc/bridgename.bridge0`` file.  Here's mine::
+
+    add gif0
+    add dc0
+    #
+    !ipsecadm flush
+    !ipsecadm new esp -spi 2000 -dst 66.24.105.57 -src 129.21.111.216 -enc 3des   \
+        -auth sha1 -key d09fffc3ebaee12362d65b38068dd381df89e4961ed282b3 -authkey \
+        5ee0fc2cc2197fe24417934cac6db483b53eace3
+    !ipsecadm new esp -spi 2001 -dst 129.21.111.216 -src 66.24.105.57 -enc 3des   \
+        -auth sha1 -key d09fffc3ebaee12362d65b38068dd381df89e4961ed282b3 -authkey \
+        5ee0fc2cc2197fe24417934cac6db483b53eace3
+    !ipsecadm flow -dst 66.24.105.57 -out -transport etherip -require -addr       \
+        129.21.111.216 255.255.255.255 66.24.105.57 255.255.255.255
+    #
+    up
+
+The contents of this file will require a little bit of explanation.
+
+The first two lines add the ``gif0`` and ``dc0`` interfaces to this bridge
+interface.  Once these two interfaces are placed in a bridge group, packets
+will be able to move freely between them, as if they existing on the same
+physical Ethernet segment.
+
+The second set of commands are all prefixed with a exclamation point (``!``).
+This indicates that these commands are not ``ifconfig`` parameters.  Instead,
+they should be executed on their own during the configuration sequence.
+
+These commands set up the various security associations using ``ipsecadm``, as
+was discussed earlier.  Note that the first thing we do is flush any existing
+security associations and flows.  This starts us with a clean slate every
+time.
+
+The last line simply activates the bridge interface. 
+
+Additional Information
+======================
+
+Using kernfs
+------------
+
+OpenBSD's ``kernfs`` virtual file system exports some useful information on
+the system's current IPSec settings.  This information can be very handy when
+debugging setups and gathering statistics.
+
+To begin, you must first mount the kernfs file system (which isn't done as
+part of a default installation).  You'll need to create a new mount point
+(``/kern`` is typical)::
+
+    # mkdir /kern
+
+Next, you'll need to add the following line to you ``/etc/fstab`` file::
+
+    /kern /kern kernfs ro 0 0
+
+You can now mount the kernfs file system using the command::
+
+    # mount /kern
+
+The information we want is stored in ``/kern/ipsec``.  It can be viewed simply
+by ``cat``'ing the file::
+
+    % cat /kern/ipsec
+
+After you've set up a couple of security associations, your output will look
+something like this::
+
+    Hashmask: 31, policy entries: 1
+    SPI = 00002000, Destination = 66.24.105.57, Sproto = 50
+            Established 1283589 seconds ago
+            Source = 129.21.111.216
+            Flags (00000000) = 
+            Crypto ID: 1
+            xform = 
+                    Encryption = <3DES>
+                    Authentication = 
+            174365335 bytes processed by this SA
+            Expirations:
+                    (none)
+
+    SPI = 00002001, Destination = 129.21.111.216, Sproto = 50
+            Established 1283589 seconds ago
+            Source = 66.24.105.57
+            Flags (00000000) = 
+            Crypto ID: 2
+            xform = 
+                    Encryption = <3DES>
+                    Authentication = 
+            405224 bytes processed by this SA
+            Expirations:
+                    (none)
+
+Increasing the Number of Interfaces
+-----------------------------------
+
+Because each virtual Ethernet tunnel requires one ``gif`` interface and one
+``bridge`` interface, a stock OpenBSD installation can only support two
+tunnels (only two ``bridge`` interfaces are available by default in OpenBSD
+2.9).
+
+Increasing the number of available is fairly trivial, however.  The downside
+is that it currently requires a kernel recompilation, which inherently
+requires a reboot in order to see the effects of the new kernel.
+
+Note that the details of building a kernel under OpenBSD are outside the scope
+of this document, but the topic is conferred pretty well as part of the
+`OpenBSD FAQ`_.
+
+Begin by editing your kernel configuration file.  Note that the definitions
+for the ``gif`` and ``bridge`` devices are in the GENERIC kernel configuration
+file, which your configuration file probably includes.  We'll simply be
+overriding these default entries.
+
+Add the following lines to your kernel configuration file::
+
+    pseudo-device   gif             8   # IPv[46] over IPv[46] tunnel (RFC1933)
+    pseudo-device   bridge          8   # network bridging support
+
+Feel free to replace the number of devices (8, in this case) with a number of
+your own choosing.  It's up to you and your setup.
+
+Continue on building your custom kernel.  Note that config might complain
+about the redefinition of the above interfaces, but the warning is only
+informational.  Your new values will override the defaults.
+
+A reboot using your new kernel is required for the new devices to become
+available. 
+
+References
+==========
+
+- `ipsecadm(8) manpage <http://www.openbsd.org/cgi-bin/man.cgi?query=ipsecadm>`_
+- `gif(4) manpage <http://www.openbsd.org/cgi-bin/man.cgi?query=gif>`_
+- `bridge(4) manpage <http://www.openbsd.org/cgi-bin/man.cgi?query=bridge>`_
+- `ifconfig(8) manpage <http://www.openbsd.org/cgi-bin/man.cgi?query=ifconfig>`_
+- `brconfig(8) manpage <http://www.openbsd.org/cgi-bin/man.cgi?query=brconfig>`_
+
+.. _OpenBSD: http://www.openbsd.org/
+.. _OpenBSD FAQ: http://www.openbsd.org/faq/faq5.html
+.. _IPSec: http://en.wikipedia.org/wiki/IPsec
+.. _sysctl: http://www.openbsd.org/cgi-bin/man.cgi?query=sysctl
+.. _ipsecadm: http://www.openbsd.org/cgi-bin/man.cgi?query=ipsecadm
+.. _esp: http://www.ietf.org/rfc/rfc2406.txt
+
+.. vim: tabstop=4 shiftwidth=4 softtabstop=4 expandtab textwidth=78 ft=rst:
