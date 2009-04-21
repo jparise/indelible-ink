@@ -12,7 +12,7 @@ Color scheme definitions are simply normal Vim scripts that live in the
 
 Color schemes are loaded using the ``:colorscheme`` command.  The scheme's
 name is determined by the filename of its script file (minus the ``.vim``
-extension).  For example, to load the stock `blue` color scheme (which is
+extension).  For example, to load the stock *blue* color scheme (which is
 defined by the ``colors/blue.vim`` script):
 
 .. code-block:: vim
@@ -38,15 +38,15 @@ Start the script with the following commands:
 These commands will reset the syntax highlighting system to its default state.
 Note that some color scheme scripts might prefer a light background, so that
 first line should be changed accordingly.  (``highlight clear`` uses the
-`background` value, so `background` must be set first.)
+*background* value, so *background* must be set first.)
 
 The final line sets the global ``colors_name`` variable to the scheme's name
-(`example`, in this example).
+(*example*, in this example).
 
 The rest of the script defines the color scheme itself.  This is accomplished
 primarily through the ``highlight`` (or ``hi``) command.  Each ``highlight``
 command sets the colors for a single syntax group.  Setting the colors for the
-`Comments` group might look like this::
+*Comments* group might look like this::
 
     hi Comment ctermbg=black ctermfg=darkgrey guibg=#000000 guifg=#777777
 
