@@ -79,6 +79,10 @@ pre {
 	overflow: auto;
 }
 
+pre.code-block {
+	padding-bottom: 0;
+}
+
 tt, pre, code, samp, kbd {
 	color: #333;
 	font-family: Consolas, 'Lucida Console', monospace;
