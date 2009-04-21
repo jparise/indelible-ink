@@ -7,16 +7,20 @@ upon the editor's rich syntax highlighting system.  The stock Vim distribution
 includes a number of color schemes, and many more are available from the `Vim
 Scripts repository`_.
 
-Color schemes definitions are simply normal Vim scripts that live in the
+Color scheme definitions are simply normal Vim scripts that live in the
 ``colors/`` directory of the Vim runtime hierarchy (see ``:help runtimepath``).
 
-Loading a color scheme is done using the ``:colorscheme`` command.  The color
-scheme's name is determined by the name of its script file (minus the ``.vim``
-extension).  For example, to load the stock `blue` color scheme:
+Color schemes are loaded using the ``:colorscheme`` command.  The scheme's
+name is determined by the filename of its script file (minus the ``.vim``
+extension).  For example, to load the stock `blue` color scheme (which is
+defined by the ``colors/blue.vim`` script):
 
 .. code-block:: vim
 
     :colorscheme blue
+
+Creating Color Schemes
+======================
 
 Creating a custom color scheme is quite easy.  Start by creating a new Vim
 script file in the ``colors/`` directory based on the name of the new scheme.
@@ -32,21 +36,21 @@ Start the script with the following commands:
     let g:colors_name = "example"
 
 These commands will reset the syntax highlighting system to its default state.
-Note that some color scheme scripts might prefer a light background, so the
-first line above would be changed accordingly.  (``highlight clear`` uses the
+Note that some color scheme scripts might prefer a light background, so that
+first line should be changed accordingly.  (``highlight clear`` uses the
 `background` value, so `background` must be set first.)
 
-The final line sets the global ``colors_name`` variable to the same of the
-color scheme (`example` in this example).
+The final line sets the global ``colors_name`` variable to the scheme's name
+(`example`, in this example).
 
-The rest of the script sets of the color scheme itself.  This is accomplished
+The rest of the script defines the color scheme itself.  This is accomplished
 primarily through the ``highlight`` (or ``hi``) command.  Each ``highlight``
 command sets the colors for a single syntax group.  Setting the colors for the
 `Comments` group might look like this::
 
     hi Comment ctermbg=black ctermfg=darkgrey guibg=#000000 guifg=#777777
 
-To see a full list of all of Vim's syntax groups (along with their current
+To see the full list of Vim's syntax groups (along with their current
 highlight settings), run the following command from within the editor::
 
     :source $VIMRUNTIME/syntax/hitest.vim
@@ -55,7 +59,7 @@ Testing Runtime Features
 ========================
 
 Because the color scheme is simply a Vim script, you can conditionalize the
-definitions based on various runtime variables.  The presence of the
+definitions based on various runtime values.  The presence of the
 ``gui_running`` feature indicates that the Vim GUI is running, for example:
 
 .. code-block:: vim
@@ -66,8 +70,8 @@ definitions based on various runtime variables.  The presence of the
         " Non-GUI (terminal) colors
     endif
 
-And the terminal's color range (number of available colors) can be queried via
-the ``&t_Co`` variable:
+And the terminal's color range -- the number of available colors -- can be
+queried via the ``&t_Co`` variable:
 
 .. code-block:: vim
 
