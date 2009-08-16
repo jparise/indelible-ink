@@ -1,0 +1,191 @@
+==========================
+ Reloading Python Modules
+==========================
+
+Being able to reload code modules is one of the many nice features of Python_.
+This allows developers to modify parts of a Python application while the
+interpreter is running.  In general, all that needs to be done is pass a
+module object to the `imp.reload()`_ function (or just `reload()`_ in Python
+2.x), and the module will be reloaded from its source file.
+
+There are a few potential complications, however.
+
+If any other code references symbols exported by the reloaded module, they may
+still be bound to the original code.  For example, imagine if module ``A``
+contains the constant ``INTERVAL = 5``, and module ``B`` imports that constant
+into its namespace (``from A import INTERVAL``).  If we change the constant to
+``INTERVAL = 10`` and just reload module ``A``, any values in module ``B``
+that were based on ``INTERVAL`` won't be updated to reflect its new value.
+
+The solution to this problem is to also reload module ``B``.  But it's
+important to only reload module ``B`` *after* module ``A`` has been reloaded.
+Otherwise, it won't pick up the updated symbols.
+
+PyUnit_ deals with a variation of this problem by introducing a `rollback
+importer`_.  That approach "rolls back" the set of imported modules to some
+previous state by overriding Python's global ``__import__`` hook.  Their
+solution is effective at restoring the interpreter's state to pre-test
+conditions, but it's not a general solution for live code reloading because
+the unloaded modules aren't automatically reloaded.
+
+The following describes a general module reloading solution which aims to make
+the process automatic, transparent, and reliable.
+
+Recording Module Dependencies
+=============================
+
+As seen above, it is important to understand the dependencies between loaded
+modules so that they can be reloaded in the correct order.  The ideal solution
+is to build a dependency graph as the modules are loaded, but, for the sake of
+simplicity, the code below will simply build an ordered list.  The downside to
+this approach is that it causes *all* modules loaded after the reloaded module
+to also be reloaded, even if there were no true dependencies between them.
+
+.. code-block:: python
+
+    import builtins
+    from collections import OrderedDict
+
+    _baseimport = builtins.__import__
+    _modules = OrderedDict()
+
+    def _import(name, globals=None, locals=None, fromlist=None, level=None):
+        mod = _baseimport(name, globals, locals, fromlist, level)
+        if mod and '__file__' in mod.__dict__:
+            _modules[mod] = mod.__file__
+        return mod
+
+    builtins.__import__ = _import
+
+This code chains the built-in ``__import__`` hook.  After a module is
+successfully imported, it is recorded, along with its source filename, in the
+global ``_modules`` collection.  Note that this code is only interested in
+file-based modules; built-in extensions are ignored because they can't be
+reloaded.
+
+Monitoring Module Changes
+=========================
+
+A nice feature of a reloading system is automatic detection of module changes.
+There are many ways to monitor the file system for source file changes.  The
+approach implemented here uses a background thread and the `stat()`_ system
+call to watch each file's last modification time.  When an updated source file
+is detected, its filename is added to an `thread-safe queue`_.
+
+.. code-block:: python
+
+    import os, sys, time
+    import queue, threading
+
+    _win = (sys.platform == 'win32')
+
+    class ModuleMonitor(threading.Thread):
+
+        def __init__(self):
+            threading.Thread.__init__(self)
+            self.daemon = True
+            self.mtimes = {}
+            self.queue = queue.Queue()
+
+        def run(self):
+            while True:
+                self._scan()
+                time.sleep(1)
+
+        def _scan(self):
+            # We're only interested in file-based modules (not C extensions).
+            modules = [m.__file__ for m in sys.modules.values()
+                    if '__file__' in m.__dict__]
+
+            for filename in modules:
+                # We're only interested in the source .py files.
+                if filename.endswith('.pyc') or filename.endswith('.pyo'):
+                    filename = filename[:-1]
+
+                # stat() the file.  This might fail if the module is part of a
+                # bundle (.egg).  We simply skip those modules because they're
+                # not really reloadable anyway.
+                try:
+                    stat = os.stat(filename)
+                except OSError:
+                    continue
+
+                # Check the modification time.  We need to adjust on Windows.
+                mtime = stat.st_mtime
+                if _win:
+                    mtime -= stat.st_ctime
+
+                # If this is a new file, just register its mtime and move on.
+                if filename not in self.mtimes:
+                    self.mtimes[filename] = mtime
+                    continue
+
+                # If this file's mtime has changed, queue it for reload.
+                if mtime != self.mtimes[filename]:
+                    self.queue.put(filename)
+
+                self.mtimes[filename] = mtime
+
+Alternate approaches could use native operation system monitor facilities,
+such as the `Win32 Directory Change Notification`_ system.
+
+The Reloader
+============
+
+The ``Reloader`` object polls for source file changes and reloads modules
+based on their load order as recorded in the ``_modules`` collection.
+
+.. code-block:: python
+
+    import imp
+
+    class Reloader(object):
+
+        def __init__(self):
+            self.monitor = ModuleMonitor()
+            self.monitor.start()
+
+        def poll(self):
+            filenames = set()
+            while not self.monitor.queue.empty():
+                try:
+                    filenames.add(self.monitor.queue.get_nowait())
+                except queue.Empty:
+                    break
+            if filenames:
+                self._reload(filenames)
+
+        def _reload(self, filenames):
+            reloading = False
+            for mod in _modules:
+                # Toggle the reloading flag once we reach our first filename.
+                if not reloading and mod.__file__ in filenames:
+                    reloading = True
+                # Reload all later modules in the collection, as well.
+                if reloading:
+                    imp.reload(mod)
+
+In this model, the reloader needs to be polled periodically for it to react to
+changes.  The simplest example would look like this:
+
+.. code-block:: python
+
+    r = Reloader()
+    while True:
+        r.poll()
+        time.sleep(1)
+
+The `complete source code package`_ is available on Bitbucket_.
+
+.. _Python: http://www.python.org/
+.. _imp.reload(): http://docs.python.org/3.1/library/imp.html#imp.reload
+.. _reload(): http://docs.python.org/2.6/library/functions.html#reload
+.. _PyUnit: http://pyunit.sourceforge.net/
+.. _rollback importer: http://pyunit.sourceforge.net/notes/reloading.html
+.. _stat(): http://docs.python.org/library/os.html#os.stat
+.. _thread-safe queue: http://docs.python.org/library/queue.html
+.. _Win32 Directory Change Notification: http://msdn.microsoft.com/en-us/library/aa365261(VS.85).aspx
+.. _complete source code package: http://bitbucket.org/jparise/py-reloader/
+.. _Bitbucket: http://bitbucket.org/
+
+.. vim: tabstop=4 shiftwidth=4 softtabstop=4 expandtab textwidth=78 ft=rst:
