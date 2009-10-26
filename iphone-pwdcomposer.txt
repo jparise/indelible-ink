@@ -212,8 +212,9 @@ manifest file to check for updates, but the application will otherwise be
 running entirely from the cache, essentially making it a local iPhone
 application.
 
-The `complete source code`_ to my iPhone version of `Password Composer`_ is
-available on Bitbucket_.
+My version is deployed here: http://www.indelible.org/pwdcomposer/
+
+The `complete source code`_ is available on Bitbucket_.
 
 .. _Password Composer: http://www.xs4all.nl/~jlpoutre/BoT/Javascript/PasswordComposer/
 .. _public web-based interface: http://www.xs4all.nl/~jlpoutre/BoT/Javascript/PasswordComposer/password_composer_form.html
