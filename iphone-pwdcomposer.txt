@@ -9,20 +9,20 @@ available in order to (re)generate the password for a given web site, and that
 isn't always convenient, despite the large number of existing Password
 Composer implementations.
 
-The main place I find myself missing Password Composer is when I'm using my
-iPhone.  The only current solution that works from Mobile Safari is the
-`public web-based interface`_, and I'm security-conscious enough to avoid
-using that version whenever possible.  I decided the only reasonable solution
-would be to find a way to run Password Composer locally on my iPhone.
+The main place I find myself missing Password Composer is on my iPhone.  The
+only current solution that works from Mobile Safari is the `public web-based
+interface`_, and I'm security-conscious enough to avoid using that version
+whenever possible.  I decided the only reasonable solution would be to find a
+way to run Password Composer locally on my iPhone.
 
 I first considered writing a full-blown native iPhone application.  I know a
 bit of Objective-C and have experimented with the iPhone SDK, but, additional
 learning opportunities aside, this approach felt like overkill.
 
-I then discovered the option of writing a iPhone-enhanced offline web
-application.  That would let me adapt Password Composer's existing static web
-interface without having to work through the iPhone SDK.  I found the early
-release of Jonathan Stark's `Building iPhone Applications with HTML, CSS, and
+I then discovered the option of writing an iPhone-enhanced offline web
+application.  That would let me reuse Password Composer's existing static web
+form without having to work through the iPhone SDK.  I found the early release
+of Jonathan Stark's `Building iPhone Applications with HTML, CSS, and
 JavaScript`_ and set out to adapt Password Composer to the iPhone.
 
 Basic Application
@@ -69,13 +69,13 @@ JavaScript.
     </html>
 
 The JavaScript and form were copied directly from Password Composer's `public
-web-based interface`_ and worked fine in Mobile Safari.
+web-based interface`_ and worked just fine in Mobile Safari.
 
 Styling the Application
 =======================
 
 Next, I set about styling the look and feel of the page to more closely
-resemble an iPhone application.  First, I added a separate stylesheet.  I
+resemble an iPhone application.  I started by adding a stylesheet file.  I
 could have used inline CSS, and maybe I'll merge the styles back into the main
 page at some point in the future, but using a separate file keeps things more
 manageable for the time being.
@@ -124,14 +124,14 @@ Most of these styles are influenced by examples from `Jonathan Stark's book`_.
 Viewport Definition
 -------------------
 
-The second change is the addition of a ``viewport`` meta tag:
+The next change is the addition of a ``viewport`` meta tag:
 
 .. code-block:: html
 
     <meta name="viewport" content="user-scalable=no, width=device-width" />
 
 This ``viewport`` definition convinces Mobile Safari not to rescale the HTML
-content as thought it were a "normal" 980px-wide web page.
+content as though it were a "normal" 980px-wide web page.
 
 Input Field Types
 -----------------
@@ -141,7 +141,7 @@ the most appropriate type of on-screen keyboard on the iPhone.  *Master Key*
 was already being recognized as a password field (``type=password``), but I
 wanted the *Domain* field to use the iPhone's special URL keyboard.
 
-`A little research`_ indicated that Mobile Safari recognized a small subset of
+`A little research`_ indicated that Mobile Safari recognizes a small subset of
 the HTML5 input types, including the ``url`` type.
 
 .. code-block:: html
@@ -151,49 +151,50 @@ the HTML5 input types, including the ``url`` type.
 Custom Icon
 ===========
 
-Because I wanted Password Composer to feel like a natural, first-class iPhone
-application, it deserved to get a real icon.  This icon would be used when a
-link to the application is saved to the user's home screen.  Home screen icons
-are 57×57 PNG images.
+Because I want Password Composer to feel like a natural, first-class iPhone
+application, it deserves to get a real icon.  This icon is used when a link to
+the application is saved to the user's home screen.  Home screen icons are
+57×57 pixel PNG images.
 
 There are two ways for a web application to specify its home screen icon:
 
 1. Provide a file named ``apple-touch-icon.png`` in the site's root.
-2. Add a ``<link rel="apple-touch-icon" href="icon.png" />`` link in the
-   page's ``<head>`` element.
+2. Add a ``<link rel="apple-touch-icon" href="icon.png" />`` tag to the page's
+   ``<head>`` block.
 
 I chose the second approach because I wasn't planning on using an entire
-domain to see the Password Composer application.
+domain to serve the Password Composer application.  It also feels like better
+encapsulation for a single-page web application.
 
 Offline Application Cache
 =========================
 
-The last bit of work focuses on supporting the iPhone's offline application
-cache.  This allows the files used by a web-based applications to be cached
+The last bit of work adds support for the iPhone's offline application cache.
+This cache allows the files used by a web-based applications to be stored
 locally on the iPhone so that they can still be accessed when the phone
 doesn't have an active network connection.  This "offline mode" is described
 quite well in Stark's book: `Chapter 6: Going Offline`_.
 
 Briefly, all that's required is the creation of a "manifest" file, `as
-specified by HTML5`_.  My file is named ``pwdcomposer.manifest``::
+specified by HTML5`_.  My manifest file is named ``pwdcomposer.manifest``::
 
     CACHE MANIFEST
     index.html
     iphone.css
     icon.png
 
-The manifest lists all of the file assets used by the web application.
-Manifest files can be much more involved than this example.  They can specify
-fallback images for use when network-based files are inaccessible, for
-example.  But for my current purposes, the simple manifest above works great.
+The manifest lists all of the files used by the web application.  Manifest
+files can be much more involved than this example.  They can specify fallback
+images for use when network-based files are inaccessible, for example.  But
+for my current purposes, the simple manifest above works great.
 
-Manifest files must be served up using the ``text/cache-manifest`` MIME type.
+Manifest files must be served using the ``text/cache-manifest`` MIME type.
 For Apache-like web servers, this can be configured using a directive like::
 
     AddType text/cache-manifest .manifest
 
 Lastly, the web page needs to specify its associated manifest file using the
-``manifest`` attribute of the ``<head>`` element:
+``manifest`` attribute of the ``<html>`` element:
 
 .. code-block:: html
 
