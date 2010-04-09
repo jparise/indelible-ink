@@ -8,24 +8,24 @@ URLs, email addresses, map addresses, and phone numbers, but it also includes
 a flexible mechanism for recognizing and converting additional text patterns,
 as well.
 
-The Android Developers blog has an article entitled `Linkify your Text!`_ that
-provides a nice overview of system.  It discusses how the `Linkify`_ class can
-be used to enable the default link patterns before continuing with a more
-advanced WikiWords example that demonstrates custom links.  That article is a
-fine introduction to the system, so the rest of this article will primarily
-focus on details not covered therein.
+The `Android Developers Blog`_ has an article entitled `Linkify your Text!`_
+that provides a nice overview of the system.  It discusses how the `Linkify`_
+class can be used to enable the default link patterns and then continues with
+a more advanced `WikiWords`_ example that demonstrates custom links.  That
+article is a fine introduction to the system, so the rest of this article will
+primarily focus on details not covered therein.
 
 All of the examples in this article are based on the `TextView`_ widget.  The
-`Linkify`_ class can also be used to add links to `Spannable`_ text, but those
-use cases won't be covered here because the usage is nearly identical to the
-`TextView`_ cases.
+Linkify class can also be used to add links to `Spannable`_ text, but those
+use cases won't be covered here because their usage is nearly identical to the
+TextView cases.
 
 
 TextView AutoLinking
 ====================
 
-The `TextView`_ widget features an `android:autoLink`_ attribute that controls
-which types of text patterns are automatically recognized and converted to
+The TextView widget features an `android:autoLink`_ attribute that controls
+the types of text patterns that are automatically recognized and converted to
 clickable links.  This attribute is a convenient way to enable one or more of
 the default link patterns because it can be configured directly from a layout
 without involving any additional code.
@@ -35,14 +35,15 @@ the `setAutoLinkMask()`_ function exists.
 
 There is one important caveat to using this "auto-linking" functionality,
 however.  It appears that when "auto-linking" is enabled, all additional
-`Linkify`_ operations are ignored.  It's unclear whether this behavior is
+Linkify operations are ignored.  It's unclear whether this behavior is
 intentional or inadvertent, so it's possible things could change in future
 released of the Android SDK.  Consider disabling "auto-linking" before using
-any of the `Linkify`_ operations discussed below.
+any of the Linkify operations discussed below.
 
 .. code-block:: java
 
-   textView.setAutoLinkMask(0); 
+    // Disable the text view's auto-linking behavior
+    textView.setAutoLinkMask(0); 
 
 
 Default Link Patterns
@@ -71,8 +72,7 @@ Custom Link Patterns
 
 Detecting additional types of link patterns is easy, too.  The
 `addLinks(TextView text, Pattern pattern, String scheme)`_ function detects
-links using a regular expression pattern and generates links based on the
-provided URL scheme.
+links based on a regular expression pattern.
 
 .. code-block:: java
 
@@ -95,8 +95,8 @@ provider`_ to reference application resources, for example.
 Match Filters
 =============
 
-Regular expressions are very powerful ways to match text patterns, but
-sometimes a bit more flexibility is useful.  The `MatchFilter`_ class provides
+Regular expressions are a very powerful way to match text patterns, but
+sometimes a bit more flexibility is needed.  The `MatchFilter`_ class provides
 this capability by giving user code a chance to evaluate the link worthiness
 of some matched text.
 
@@ -119,18 +119,18 @@ of some matched text.
     Pattern pattern = Pattern.compile("[0-9]+");
     Linkify.addLinks(text, pattern, "http://...", oddFilter, null);
 
-A more complex (but useful!) example would involve matching valid date.  The
-regular expression could be generous enough to match dates like 2010-02-30
-(February 30, 2010), but the match filter could provide the logic to reject
-bogus calendar dates like that.
+A more complex (but useful!) example would involve matching valid dates.  The
+regular expression could be generous enough to match strings like "2010-02-30"
+(February 30, 2010), but a match filter could provide the logic to reject
+bogus calendar dates.
 
 
 Transform Filters
 =================
 
 Up until this point, the final link was always being generated based on the
-literal matched text.  There are many cases where that's not desirable,
-however.  For example, it's very common to mention a username using the
+exact matched text.  There are many cases where that is not desirable,
+however.  For example, it's common to mention a username using the
 ``@username`` syntax, but the resulting link should only include the
 ``username`` portion of the text.  The `TransformFilter`_ class provides a
 solution.
@@ -141,7 +141,7 @@ solution.
     import android.text.util.Linkify;
     import android.text.util.Linkify.TransformFilter;
 
-    // A transform filter which simply returns just the text captured by the
+    // A transform filter that simply returns just the text captured by the
     // first regular expression group.
     TransformFilter mentionFilter = new TransformFilter() {
         public final String transformUrl(final Matcher match, String url) {
@@ -183,7 +183,9 @@ system is intended to be used.
 
 
 .. _Linkify: http://developer.android.com/reference/android/text/util/Linkify.html
+.. _Android Developers Blog: http://android-developers.blogspot.com/
 .. _Linkify your Text!: http://android-developers.blogspot.com/2008/03/linkify-your-text.html
+.. _WikiWords: http://c2.com/cgi/wiki?WikiWord
 .. _TextView: http://developer.android.com/reference/android/widget/TextView.html
 .. _Spannable: http://developer.android.com/reference/android/text/Spannable.html
 .. _android:autoLink: http://developer.android.com/reference/android/widget/TextView.html#attr_android:autoLink
