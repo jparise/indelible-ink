@@ -80,7 +80,7 @@ provided URL scheme.
     import android.text.util.Linkify;
 
     // Detect US postal ZIP codes and link to a lookup service
-    Pattern pattern = Pattern.compile("\d{5}([\-]\d{4})?");
+    Pattern pattern = Pattern.compile("\\d{5}([\\-]\\d{4})?");
     String scheme = "http://zipinfo.com/cgi-local/zipsrch.exe?zip=";
     Linkify.addLinks(text, pattern, scheme);
 
@@ -109,14 +109,15 @@ of some matched text.
     // A match filter that only accepts odd numbers.
     MatchFilter oddFilter = new MatchFilter() {
         public final boolean acceptMatch(CharSequence s, int start, int end) {
-            int n = Integer.parseInt(s.toString());
-            return (n & 1);
+            int n = Character.digit(s.charAt(end-1), 10);
+            return (n & 1) == 1;
         }
-    }
+    };
 
     // Match all digits in the pattern but restrict links to only odd
     // numbers using the filter.
-    Linkify.addLinks(text, new Pattern("\d"), "http://...", oddFilter);
+    Pattern pattern = Pattern.compile("[0-9]+");
+    Linkify.addLinks(text, pattern, "http://...", oddFilter, null);
 
 A more complex (but useful!) example would involve matching valid date.  The
 regular expression could be generous enough to match dates like 2010-02-30
@@ -146,7 +147,7 @@ solution.
         public final String transformUrl(final Matcher match, String url) {
             return match.group(1);
         }
-    }
+    };
 
     // Match @mentions and capture just the username portion of the text.
     Pattern pattern = Pattern.compile("@([A-Za-z0-9_-]+)");
