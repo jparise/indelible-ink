@@ -174,8 +174,8 @@ Instead of simply calling ``imp.reload()``, the code can be expanded to:
     else:
         imp.reload(m)
 
-The ``_deepcopy_module_dict()`` helper routine exists to avoid deepcopy-ing
-unsupported or unnecessary data.
+The ``_deepcopy_module_dict()`` helper routine exists to avoid
+``deepcopy()``-ing unsupported or unnecessary data.
 
 .. code-block:: python
 
