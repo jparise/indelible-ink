@@ -156,11 +156,11 @@ Custom Reloading Behavior
 
 The reloading module may wish to implement some custom reloading logic, as
 well.  For example, it may be useful to reapply some pre-reloaded state to the
-reloaded module.  To support this, the reloader can look for a module-level
+reloaded module.  To support this, the reloader looks for a module-level
 function named ``__reload__()``.  If present, this function is called after a
 successful reload with a copy of the module's previous (pre-reload) dictionary.
 
-Instead of simply calling ``imp.reload()``, the code can be expanded to:
+Instead of simply calling ``imp.reload()``, the code expands to:
 
 .. code-block:: python
 
