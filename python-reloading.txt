@@ -23,7 +23,7 @@ Otherwise, it won't pick up the updated symbols.
 
 PyUnit_ deals with a variation of this problem by introducing a `rollback
 importer`_.  That approach "rolls back" the set of imported modules to some
-previous state by overriding Python's global ``__import__`` hook.  Their
+previous state by overriding Python's global ``__import__`` hook.  PyUnit's
 solution is effective at restoring the interpreter's state to pre-test
 conditions, but it's not a general solution for live code reloading because
 the unloaded modules aren't automatically reloaded.
@@ -34,12 +34,12 @@ the process automatic, transparent, and reliable.
 Recording Module Dependencies
 =============================
 
-As seen above, it is important to understand the dependencies between loaded
-modules so that they can be reloaded in the correct order.  The ideal solution
-is to build a dependency graph as the modules are loaded, but, for the sake of
-simplicity, the code below will simply build an ordered list.  The downside to
-this approach is that it causes *all* modules loaded after the reloaded module
-to also be reloaded, even if there were no true dependencies between them.
+It is important to understand the dependencies between loaded modules so that
+they can be reloaded in the correct order.  The ideal solution is to build a
+dependency graph as the modules are loaded, but, for the sake of simplicity,
+the code below will simply build an ordered list.  The downside to this
+approach is that it causes *all* modules loaded after the reloaded module to
+also be reloaded, even if there were no true dependencies between them.
 
 .. code-block:: python
 
@@ -70,7 +70,7 @@ A nice feature of a reloading system is automatic detection of module changes.
 There are many ways to monitor the file system for source file changes.  The
 approach implemented here uses a background thread and the `stat()`_ system
 call to watch each file's last modification time.  When an updated source file
-is detected, its filename is added to an `thread-safe queue`_.
+is detected, its filename is added to a `thread-safe queue`_.
 
 .. code-block:: python
 
@@ -126,8 +126,8 @@ is detected, its filename is added to an `thread-safe queue`_.
 
                 self.mtimes[filename] = mtime
 
-Alternate approaches could use native operation system monitor facilities,
-such as the `Win32 Directory Change Notification`_ system.
+An alternative approach could use a native operation system file monitoring
+facility, such as the `Win32 Directory Change Notification`_ system.
 
 The Reloader
 ============
