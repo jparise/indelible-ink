@@ -214,7 +214,7 @@ application.
 
 My version is deployed here: http://www.indelible.org/pwdcomposer/
 
-The `complete source code`_ is available on Bitbucket_.
+The `complete source code`_ is available on GitHub_.
 
 .. _Password Composer: http://www.xs4all.nl/~jlpoutre/BoT/Javascript/PasswordComposer/
 .. _public web-based interface: http://www.xs4all.nl/~jlpoutre/BoT/Javascript/PasswordComposer/password_composer_form.html
@@ -223,7 +223,7 @@ The `complete source code`_ is available on Bitbucket_.
 .. _A little research: http://www.bennadel.com/blog/1721-Default-To-The-Numeric-Email-And-URL-Keyboards-On-The-iPhone.htm
 .. _Chapter 6\: Going Offline: http://building-iphone-apps.labs.oreilly.com/ch06.html
 .. _as specified by HTML5: http://www.w3.org/TR/offline-webapps/
-.. _complete source code: http://bitbucket.org/jparise/pwdcomposer/
-.. _Bitbucket: http://bitbucket.org/
+.. _complete source code: https://github.com/jparise/pwdcomposer
+.. _GitHub: http://github.com/
 
 .. vim: tabstop=4 shiftwidth=4 softtabstop=4 expandtab textwidth=78 ft=rst:
