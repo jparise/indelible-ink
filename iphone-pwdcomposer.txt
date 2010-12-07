@@ -214,7 +214,7 @@ application.
 
 My version is deployed here: http://www.indelible.org/pwdcomposer/
 
-The `complete source code`_ is available on GitHub_.
+The `complete source code`_ is available on `GitHub`_.
 
 .. _Password Composer: http://www.xs4all.nl/~jlpoutre/BoT/Javascript/PasswordComposer/
 .. _public web-based interface: http://www.xs4all.nl/~jlpoutre/BoT/Javascript/PasswordComposer/password_composer_form.html

@@ -300,7 +300,7 @@ changes.  The simplest example would look like this:
         r.poll()
         time.sleep(1)
 
-The `complete source code package`_ is available on GitHub_.
+The `complete source code package`_ is available on `GitHub`_.
 
 .. _Python: http://www.python.org/
 .. _imp.reload(): http://docs.python.org/3.1/library/imp.html#imp.reload
