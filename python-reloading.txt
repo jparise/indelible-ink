@@ -311,6 +311,6 @@ The `complete source code package`_ is available on `GitHub`_.
 .. _thread-safe queue: http://docs.python.org/library/queue.html
 .. _Win32 Directory Change Notification: http://msdn.microsoft.com/en-us/library/aa365261(VS.85).aspx
 .. _complete source code package: https://github.com/jparise/python-reloader
-.. _Bitbucket: http://github.com/
+.. _GitHub: http://github.com/
 
 .. vim: tabstop=4 shiftwidth=4 softtabstop=4 expandtab textwidth=78 ft=rst:
