@@ -61,9 +61,9 @@ the top-level message.
 This composition scheme is simple but has the property of allowing multiple
 nested message types to be filled out at the same time.  While desirable in
 some contexts, this means that the deserialization code must test for the
-availbility of each and every optional message type (unless an additional type
-hint field is added).  It can could also be considered less than "pure" as a
-result.
+availability of each and every optional message type (unless an additional
+type hint field is added).  It can could also be considered less than "pure"
+as a result.
 
 Embedded Serialized Messages
 ============================
@@ -94,7 +94,7 @@ that are only interested in decoding the outer enveloping message's fields.
 Nested Extensions
 =================
 
-The final (and most generally recommended) approach uses a combinated of
+The final (and most generally recommended) approach uses a combination of
 `nested messages`_ and extensions to implemented polymorphic message types.
 This works by having each subclass reference itself from within a nested
 extension of the base type.  An explicit type field is still required to guide
@@ -149,7 +149,7 @@ here's an example using the Python API:
     animal.type = Animal.Cat
 
     # Create the subclass type by referencing the appropriate extension type.
-    # Note that this uses the self-referetial field (Cat.animal) from within
+    # Note that this uses the self-referential field (Cat.animal) from within
     # nested message extension.
     cat = animal.Extensions[Cat.animal]
     cat.declawed = True
