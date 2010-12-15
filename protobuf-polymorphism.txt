@@ -10,7 +10,7 @@ is accomplished differs from familiar C++ or Java-style inheritance.  Instead,
 `message extension`_ is implemented by reserving some number of field indices
 in the base message for use by the extending messages.
 
-::
+.. code-block:: protobuf
 
     message BaseType
     {
@@ -39,7 +39,7 @@ fields defined in either the base message or in an extension.  Each "subclass"
 is defined as an independent message type that can optionally be included in
 the top-level message.
 
-::
+.. code-block:: protobuf
 
     message Cat
     {
@@ -72,7 +72,7 @@ A second approach simply "embeds" the subclass's serialized contents within a
 ``bytes`` field in the parent message.  An explicit type field informs the
 deserialization code of the embedded message's type.
 
-::
+.. code-block:: protobuf
 
     message Animal
     {
@@ -100,7 +100,7 @@ This works by having each subclass reference itself from within a nested
 extension of the base type.  An explicit type field is still required to guide
 the deserialization process.
 
-::
+.. code-block:: protobuf
 
     message Animal
     {
@@ -182,7 +182,7 @@ It's a little unfortunate that there isn't a more obvious language syntax for
 expressing inheritance.  For example, many programmers would likely find these
 definitions familiar:
 
-::
+.. code-block:: protobuf
 
     message Animal { ... }
     message Cat : Animal { ... }
